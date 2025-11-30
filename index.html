@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Калькулятор экономии | GAIA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 2rem 1rem;
+      background: #f9fbfa;
+      font-family: 'Manrope', system-ui, sans-serif;
+      color: #222;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .header h1 {
+      font-weight: 700;
+      font-size: 28px;
+      color: #2E8B57;
+      margin: 0;
+    }
+    .header p {
+      color: #666;
+      margin: 8px 0 0;
+    }
+
+    #waste-calculator-gaia {
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .radio-group label {
+      flex: 1;
+      min-width: 160px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .radio-group input[type="radio"] {
+      margin-right: 6px;
+    }
+    .radio-group input[type="radio"]:checked + span {
+      color: #2E8B57;
+      font-weight: 600;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+    .input-group label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #555;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .input-row input,
+    .input-row select {
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 15px;
+      font-family: inherit;
+    }
+    .input-row input {
+      flex: 1;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #2E8B57;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #257a4a;
+    }
+
+    #calc-result {
+      margin-top: 1.5rem;
+      padding: 1.2rem;
+      background: rgba(46, 139, 87, 0.06);
+      border-radius: 16px;
+      display: none;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    #calc-result strong {
+      color: #2E8B57;
+    }
+    .savings-positive { color: #2E8B57; }
+    .savings-negative { color: #d32f2f; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Рассчитайте вашу экономию</h1>
+      <p>Калькулятор для установок GAIA — электрических и газовых</p>
+    </div>
+
+    <div id="waste-calculator-gaia">
+      <div class="radio-group">
+        <label>
+          <input type="radio" name="calc-type" value="electric" checked>
+          <span>Электрическая</span>
+        </label>
+        <label>
+          <input type="radio" name="calc-type" value="gas">
+          <span>Газовая</span>
+        </label>
+      </div>
+
+      <div class="input-group">
+        <label>Объём отходов в сутки</label>
+        <div class="input-row">
+          <input type="number" id="waste-amount" placeholder="300" min="0" step="10">
+          <select id="waste-unit">
+            <option value="kg">кг/сут</option>
+            <option value="t">т/сут</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Текущие расходы на утилизацию (руб/сут)</label>
+        <input type="number" id="current-cost" placeholder="5000" value="0" min="0">
+      </div>
+
+      <div class="input-group" id="energy-cost-label">
+        <label>Стоимость электроэнергии (руб/кВт·ч)</label>
+        <input type="number" id="energy-cost" placeholder="10" value="10" min="0" step="0.1">
+      </div>
+
+      <button onclick="calculateWaste()">Рассчитать экономию</button>
+
+      <div id="calc-result"></div>
+    </div>
+  </div>
+
+  <script>
+    const electricData = [
+      { prod: 50, cons: 40 }, { prod: 100, cons: 100 }, { prod: 150, cons: 120 },
+      { prod: 200, cons: 160 }, { prod: 300, cons: 240 }, { prod: 400, cons: 320 },
+      { prod: 600, cons: 480 }, { prod: 1000, cons: 800 }, { prod: 1200, cons: 960 },
+      { prod: 2000, cons: 1600 }
+    ];
+
+    const gasDataKg = [
+      { prod: 1000, cons: 100 }, { prod: 1200, cons: 120 }, { prod: 2000, cons: 200 },
+      { prod: 5000, cons: 500 }, { prod: 10000, cons: 1000 }, { prod: 20000, cons: 2000 },
+      { prod: 50000, cons: 5000 }, { prod: 100000, cons: 10000 }, { prod: 200000, cons: 20000 },
+      { prod: 300000, cons: 30000 }
+    ];
+
+    function findClosest(data, amount) {
+      const suitable = data.filter(d => d.prod >= amount);
+      return suitable.length ? suitable[0] : data[data.length - 1];
+    }
+
+    function calculateWaste() {
+      const type = document.querySelector('input[name="calc-type"]:checked').value;
+      let amount = parseFloat(document.getElementById('waste-amount').value);
+      const currentCost = parseFloat(document.getElementById('current-cost').value) || 0;
+      const energyPrice = parseFloat(document.getElementById('energy-cost').value) || 0;
+      const unit = document.getElementById('waste-unit').value;
+
+      if (isNaN(amount) || amount <= 0) {
+        alert('Пожалуйста, укажите объём отходов');
+        return;
+      }
+
+      if (unit === 't') amount *= 1000;
+
+      let dataRow, energyName, energyUnit;
+      if (type === 'electric') {
+        dataRow = findClosest(electricData, amount);
+        energyName = 'электроэнергии';
+        energyUnit = 'кВт·ч';
+      } else {
+        dataRow = findClosest(gasDataKg, amount);
+        energyName = 'газа';
+        energyUnit = 'м³';
+      }
+
+      const consDay = dataRow.cons;
+      const consHour = (consDay / 24).toFixed(2);
+      const dailyEnergyCost = consDay * energyPrice;
+      const dailySavings = currentCost - dailyEnergyCost;
+      const yearlySavings = dailySavings * 365;
+
+      const savingsClass = dailySavings >= 0 ? 'savings-positive' : 'savings-negative';
+
+      const resDiv = document.getElementById('calc-result');
+      resDiv.innerHTML = `
+        <div><strong>Подобрано оборудование:</strong> ${amount.toLocaleString()} кг/сут</div>
+        <div>Потребление ${energyName}: ${consDay} ${energyUnit}/сут (${consHour} ${energyUnit}/ч)</div>
+        <div>Стоимость энергии: <strong>${dailyEnergyCost.toLocaleString()} ₽/сут</strong></div>
+        <div>Ваши текущие расходы: <strong>${currentCost.toLocaleString()} ₽/сут</strong></div>
+        
+        <div style="padding: 10px; background: white; border-radius: 10px; margin-top: 12px;">
+          Ежедневная экономия: <strong class="${savingsClass}">${dailySavings >= 0 ? '+' : ''}${dailySavings.toLocaleString()} ₽/сут</strong><br>
+          Годовая экономия: <strong class="${savingsClass}">${yearlySavings >= 0 ? '+' : ''}${yearlySavings.toLocaleString()} ₽/год</strong>
+        </div>
+      `;
+      resDiv.style.display = 'block';
+    }
+
+    // Обновление подписи при смене типа
+    document.querySelectorAll('input[name="calc-type"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        const labelWrap = document.getElementById('energy-cost-label');
+        if (radio.value === 'electric') {
+          labelWrap.innerHTML = `
+            <label>Стоимость электроэнергии (руб/кВт·ч)</label>
+            <input type="number" id="energy-cost" placeholder="10" value="10" min="0" step="0.1">
+          `;
+        } else {
+          labelWrap.innerHTML = `
+            <label>Стоимость газа (руб/м³)</label>
+            <input type="number" id="energy-cost" placeholder="10" value="10" min="0" step="0.1">
+          `;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
